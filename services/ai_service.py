@@ -32,13 +32,14 @@ __all__ = [
     "chat_with_recipe",
 ]
 
+
 DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def sanitize_model(model: str) -> str:
     if not model:
         return DEFAULT_MODEL
-    cleaned = str(model).strip().strip('"').strip("'")
+    cleaned = str(model).strip(" '\"")
     if cleaned.startswith("models/"):
         cleaned = cleaned.replace("models/", "", 1)
     if any(old in cleaned for old in ["gemini-2.0", "gemini-1.5"]):
@@ -52,6 +53,7 @@ FALLBACK_MODELS = [
     "gemini-3.6-flash",
     "gemini-flash-latest",
 ]
+
 MODEL_NAME = sanitize_model(os.getenv("GEMINI_MODEL", DEFAULT_MODEL))
 
 _client = None
