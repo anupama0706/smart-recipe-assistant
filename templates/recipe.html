@@ -1,0 +1,299 @@
+{% extends "layout.html" %}
+
+{% block title %}Recipe Studio - Smart Recipe Assistant{% endblock %}
+
+{% block content %}
+<div class="recipe-studio-container container">
+  <!-- Interactive Step Progress Bar -->
+  <nav class="recipe-stepper-nav" aria-label="Recipe Progress">
+    <div class="stepper-step active" id="step-nav-1">
+      <span class="step-num">1</span>
+      <span class="step-label">Select Dish</span>
+    </div>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step" id="step-nav-2">
+      <span class="step-num">2</span>
+      <span class="step-label">Pantry &amp; Substitutions</span>
+    </div>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step" id="step-nav-3">
+      <span class="step-num">3</span>
+      <span class="step-label">Cook &amp; Chef Chat</span>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Suggested Dish Cards -->
+  <section id="section-dishes" class="recipe-section active">
+    <div class="section-header">
+      <h2 class="section-title">Suggested Dishes for Your Pantry</h2>
+      <p class="section-subtitle">Based on your available ingredients, here are customized dishes you can prepare right now:</p>
+    </div>
+
+    <div id="dishes-grid" class="dishes-grid">
+      <!-- Dish cards rendered dynamically via recipe.js -->
+    </div>
+
+    <div class="dishes-empty-fallback hidden" id="dishes-empty">
+      <div class="empty-card">
+        <h3>No dishes loaded yet</h3>
+        <p>Return to the dashboard to input your pantry ingredients or choose a specific dish.</p>
+        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Required & Missing Ingredients Checklist -->
+  <section id="section-checklist" class="recipe-section hidden">
+    <div class="checklist-header-card">
+      <div class="checklist-meta">
+        <span class="badge badge-accent">Selected Recipe</span>
+        <h2 id="checklist-dish-title" class="checklist-dish-title">Loading Dish...</h2>
+        <p class="checklist-dish-desc">Review what you have, adjust desired servings, and find smart substitutes for missing items.</p>
+      </div>
+
+      <div class="checklist-servings-control">
+        <span class="servings-label">Servings:</span>
+        <div class="stepper">
+          <button type="button" class="stepper-btn" id="checklist-servings-dec" aria-label="Decrease servings">&minus;</button>
+          <span class="stepper-value" id="checklist-servings-val">2</span>
+          <button type="button" class="stepper-btn" id="checklist-servings-inc" aria-label="Increase servings">&plus;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="ingredient-stats-bar">
+      <div class="stat-item">
+        <span class="stat-count" id="stat-total-req">0</span>
+        <span class="stat-name">Total Required</span>
+      </div>
+      <div class="stat-item stat-success">
+        <span class="stat-count" id="stat-available">0</span>
+        <span class="stat-name">In Your Pantry</span>
+      </div>
+      <div class="stat-item stat-warning">
+        <span class="stat-count" id="stat-missing">0</span>
+        <span class="stat-name">Missing Items</span>
+      </div>
+    </div>
+
+    <!-- Two-Column Checklist Container -->
+    <div class="checklist-columns">
+      <!-- Available Ingredients Column -->
+      <div class="checklist-col">
+        <div class="checklist-col-header">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" style="color: var(--success);">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          <h3 class="col-title">In Your Pantry</h3>
+        </div>
+        <ul id="available-list" class="ingredient-card-list">
+          <!-- Dynamically inserted available ingredients -->
+        </ul>
+      </div>
+
+      <!-- Missing Ingredients Column -->
+      <div class="checklist-col">
+        <div class="checklist-col-header">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" style="color: var(--warning);">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <h3 class="col-title">Missing Ingredients</h3>
+        </div>
+        <ul id="missing-list" class="ingredient-card-list">
+          <!-- Dynamically inserted missing ingredients with "Find Substitutes" button -->
+        </ul>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="checklist-actions">
+      <button type="button" id="btn-back-to-dishes" class="btn btn-outline">
+        &larr; Back to Dish Selection
+      </button>
+      <button type="button" id="btn-generate-recipe" class="btn btn-primary btn-lg">
+        Generate Final Recipe Instructions
+      </button>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Final Recipe Display -->
+  <section id="section-recipe-display" class="recipe-section hidden">
+    <div class="recipe-card">
+      <div class="recipe-card-header">
+        <div class="recipe-main-title">
+          <span class="badge badge-accent">AI Master Recipe</span>
+          <h1 id="recipe-display-title" class="recipe-display-title">Dish Title</h1>
+        </div>
+
+        <div class="recipe-meta-group">
+          <div class="meta-pill">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span class="meta-label">Prep:</span>
+            <strong id="recipe-prep-time">--</strong>
+          </div>
+          <div class="meta-pill">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+            </svg>
+            <span class="meta-label">Cook:</span>
+            <strong id="recipe-cook-time">--</strong>
+          </div>
+          <div class="meta-pill meta-servings">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span class="meta-label">Servings:</span>
+            <div class="stepper stepper-sm">
+              <button type="button" class="stepper-btn" id="recipe-servings-dec" aria-label="Decrease servings">&minus;</button>
+              <span class="stepper-value" id="recipe-servings-val">2</span>
+              <button type="button" class="stepper-btn" id="recipe-servings-inc" aria-label="Increase servings">&plus;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="recipe-actions">
+          <button type="button" id="btn-save-recipe" class="btn btn-primary">
+            <span id="save-btn-text">Save Recipe</span>
+          </button>
+          <button type="button" class="btn btn-outline" onclick="window.print()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.35rem;">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            Print
+          </button>
+          <button type="button" id="btn-modify-ingredients" class="btn btn-ghost">
+            Adjust Ingredients
+          </button>
+        </div>
+      </div>
+
+      <div class="recipe-body-grid">
+        <!-- Ingredients List Column -->
+        <div class="recipe-ingredients-col">
+          <h3 class="recipe-col-heading">
+            Ingredients Used
+            <small class="text-muted">(check off as you cook)</small>
+          </h3>
+          <ul id="recipe-ingredients-checklist" class="recipe-ingredients-checklist">
+            <!-- Dynamic interactive ingredients with checkable state -->
+          </ul>
+        </div>
+
+        <!-- Instructions List Column -->
+        <div class="recipe-instructions-col">
+          <h3 class="recipe-col-heading">
+            Step-by-Step Instructions
+          </h3>
+          <ol id="recipe-instructions-list" class="recipe-instructions-list">
+            <!-- Dynamic numbered steps -->
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Recipe-Aware Interactive Chat Box -->
+    <div class="recipe-chat-wrapper" id="section-chat">
+      <div class="chat-card">
+        <div class="chat-card-header">
+          <div class="chat-header-title">
+            <div class="chat-chef-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 13.8a4 4 0 0 1 0-7.6 4 4 0 0 1 7.2-2.3 4 4 0 0 1 4.8 4.3A4 4 0 0 1 18 13.8"></path>
+                <path d="M6 17h12"></path>
+                <path d="M6 21h12"></path>
+              </svg>
+            </div>
+            <div>
+              <h3>Chef AI Cooking Assistant</h3>
+              <p class="chat-context-badge">
+                <span class="live-dot"></span> Recipe context: <strong id="chat-recipe-name">Selected Dish</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat messages container -->
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-bubble chat-bubble-ai">
+            <div class="bubble-avatar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 13.8a4 4 0 0 1 0-7.6 4 4 0 0 1 7.2-2.3 4 4 0 0 1 4.8 4.3A4 4 0 0 1 18 13.8"></path>
+                <path d="M6 17h12"></path>
+                <path d="M6 21h12"></path>
+              </svg>
+            </div>
+            <div class="bubble-content">
+              <p>Hi! I'm your interactive recipe assistant. Have any questions while making <strong id="chat-greeting-dish">this dish</strong>? Ask me about cooking temperatures, timing, texture checks, or flavor tweaks!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Prompt Chips -->
+        <div class="chat-quick-chips" id="chat-quick-chips">
+          <button type="button" class="quick-chip" data-prompt="Can I make this spicier or add more heat?">Make it spicier?</button>
+          <button type="button" class="quick-chip" data-prompt="How do I store leftovers and reheat this?">Storage &amp; reheating</button>
+          <button type="button" class="quick-chip" data-prompt="What side dish pairs best with this meal?">Best side pairings</button>
+          <button type="button" class="quick-chip" data-prompt="How can I tell when it's fully cooked and done?">How to check doneness?</button>
+        </div>
+
+        <!-- Chat input form -->
+        <form id="chat-form" class="chat-form">
+          <input 
+            type="text" 
+            id="chat-input" 
+            class="chat-input" 
+            placeholder="Ask Chef AI anything about this recipe..." 
+            autocomplete="off"
+          >
+          <button type="submit" id="chat-send-btn" class="chat-send-btn" aria-label="Send message">
+            <span>Send &rarr;</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL: Substitution Recommendations Panel -->
+<div id="modal-substitution" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="sub-modal-title">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </div>
+      <div>
+        <h3 id="sub-modal-title" class="modal-title">Substitutes for <span id="sub-target-name">Ingredient</span></h3>
+        <p class="modal-subtitle">AI-recommended culinary alternatives tailored for <span id="sub-dish-name">this dish</span>.</p>
+      </div>
+      <button type="button" class="modal-close" id="sub-modal-close" aria-label="Close modal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="substitutes-list" class="substitutes-list">
+        <!-- 3 Substitute Cards rendered dynamically -->
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" id="sub-modal-cancel">Keep Missing Ingredient</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/recipe.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Recipe Assistant{% endblock %}</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <!-- Global Loading Spinner Overlay -->
+  <div id="global-loader" class="loader-overlay hidden" aria-hidden="true" role="status">
+    <div class="spinner-card">
+      <div class="spinner"></div>
+      <p id="loader-text" class="loader-text">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Main Navigation -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="/dashboard" class="brand-logo" aria-label="SmartRecipe Home">
+        <svg class="brand-icon-svg" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#E05320"/>
+          <path d="M11 9V13.5C11 14.6 11.9 15.5 13 15.5V23.5H14V15.5C15.1 15.5 16 14.6 16 13.5V9H15V12.5H14.2V9H13.2V12.5H12V9H11Z" fill="white"/>
+          <path d="M20 9C18.6 9 17.5 10.4 17.5 12.2C17.5 13.8 18.5 15.2 19.5 15.4V23.5H20.5V15.4C21.5 15.2 22.5 13.8 22.5 12.2C22.5 10.4 21.4 9 20 9Z" fill="white"/>
+        </svg>
+        <span class="brand-text">Smart<strong>Recipe</strong></span>
+      </a>
+
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+
+      <nav class="nav-menu" id="nav-menu">
+        <ul class="nav-list">
+          <li>
+            <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' or request.path == '/' %}active{% endif %}">Dashboard</a>
+          </li>
+          <li>
+            <a href="/saved-recipes" class="nav-link {% if request.path == '/saved-recipes' %}active{% endif %}">Saved Recipes</a>
+          </li>
+        </ul>
+
+        <div class="nav-auth">
+          {% if session.get('user_id') %}
+            <div class="user-pill">
+              <span class="user-avatar">{{ session.get('user_name', 'C')[0] | upper }}</span>
+              <span class="user-name">{{ session.get('user_name', 'Chef') }}</span>
+            </div>
+            <button class="btn btn-outline btn-sm" id="logout-btn" type="button">Log Out</button>
+          {% else %}
+            <a href="/login" class="nav-link {% if request.path == '/login' %}active{% endif %}">Log In</a>
+            <a href="/signup" class="btn btn-primary btn-sm">Sign Up</a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Flash Messages Container -->
+  <div class="container alerts-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'message' else 'info' }}" role="alert">
+            <span class="alert-icon-svg">
+              {% if category == 'success' %}
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              {% elif category == 'error' %}
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              {% else %}
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              {% endif %}
+            </span>
+            <span class="alert-message">{{ message }}</span>
+            <button class="alert-close" onclick="this.parentElement.remove();" aria-label="Close alert">&times;</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page Content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-brand">
+        <svg class="brand-icon-svg" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="6" fill="#E05320"/>
+          <path d="M11 9V13.5C11 14.6 11.9 15.5 13 15.5V23.5H14V15.5C15.1 15.5 16 14.6 16 13.5V9H15V12.5H14.2V9H13.2V12.5H12V9H11Z" fill="white"/>
+          <path d="M20 9C18.6 9 17.5 10.4 17.5 12.2C17.5 13.8 18.5 15.2 19.5 15.4V23.5H20.5V15.4C21.5 15.2 22.5 13.8 22.5 12.2C22.5 10.4 21.4 9 20 9Z" fill="white"/>
+        </svg>
+        <span>Smart Recipe Assistant</span>
+      </div>
+      <p class="footer-copy">&copy; <span id="current-year">2026</span> Smart Recipe Assistant. Cook smart.</p>
+    </div>
+  </footer>
+
+  <!-- Base Client Helpers -->
+  <script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    // Mobile menu toggle
+    const navToggle = document.getElementById('nav-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    if (navToggle && navMenu) {
+      navToggle.addEventListener('click', () => {
+        const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+        navToggle.setAttribute('aria-expanded', !expanded);
+        navMenu.classList.toggle('nav-menu-open');
+      });
+    }
+
+    // Dynamic Toast Function with Clean SVGs (Strict Emoji Removal)
+    window.showToast = function(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      const icons = {
+        success: '<svg width="18" height="18" viewBox="0 0 20 20" fill="#16A34A"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>',
+        error: '<svg width="18" height="18" viewBox="0 0 20 20" fill="#DC2626"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+        warning: '<svg width="18" height="18" viewBox="0 0 20 20" fill="#D97706"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+        info: '<svg width="18" height="18" viewBox="0 0 20 20" fill="#0284C7"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+      };
+      const icon = icons[type] || icons.info;
+
+      toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-text">${message}</span>
+        <button class="toast-close" aria-label="Close notification">&times;</button>
+      `;
+
+      toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.classList.add('toast-fade-out');
+        setTimeout(() => toast.remove(), 250);
+      });
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.classList.add('toast-fade-out');
+          setTimeout(() => toast.remove(), 250);
+        }
+      }, 3500);
+    };
+
+    // Global Loader Controls
+    window.showLoader = function(text = 'Working on your recipe...') {
+      const loader = document.getElementById('global-loader');
+      const loaderText = document.getElementById('loader-text');
+      if (loaderText && text) loaderText.textContent = text;
+      if (loader) {
+        loader.classList.remove('hidden');
+        loader.setAttribute('aria-hidden', 'false');
+      }
+    };
+
+    window.hideLoader = function() {
+      const loader = document.getElementById('global-loader');
+      if (loader) {
+        loader.classList.add('hidden');
+        loader.setAttribute('aria-hidden', 'true');
+      }
+    };
+
+    // Handle Logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          showLoader('Logging you out...');
+          const res = await fetch('/logout');
+          const data = await res.json();
+          hideLoader();
+          if (data.success) {
+            window.location.href = '/login';
+          }
+        } catch (err) {
+          hideLoader();
+          window.location.href = '/login';
+        }
+      });
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

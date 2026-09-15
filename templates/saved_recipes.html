@@ -1,0 +1,358 @@
+{% extends "layout.html" %}
+
+{% block title %}Saved Recipes - Smart Recipe Assistant{% endblock %}
+
+{% block content %}
+<div class="saved-recipes-hero">
+  <div class="container">
+    <h1 class="hero-title">Your Saved Recipes</h1>
+  </div>
+</div>
+
+<div class="container saved-recipes-main">
+  <!-- Centered Search Input Bar -->
+  <div class="saved-search-wrapper">
+    <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <input 
+      type="text" 
+      id="search-recipes-input" 
+      class="saved-search-input" 
+      placeholder="Search saved recipes"
+    >
+  </div>
+
+  <!-- Unauthenticated State (Matching Prototype media_1789462151225.png) -->
+  <div id="unauth-saved-state" class="empty-state hidden">
+    <div class="empty-state-card">
+      <div class="empty-state-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h2 class="empty-state-title">Log in to view saved recipes</h2>
+      <p class="empty-state-text">Create an account or log in to view your saved recipes</p>
+      <div class="empty-state-actions">
+        <a href="/login" class="btn btn-outline">Log In</a>
+        <a href="/signup" class="btn btn-primary">Sign Up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authenticated Empty State View -->
+  <div id="empty-saved-state" class="empty-state hidden">
+    <div class="empty-state-card">
+      <div class="empty-state-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </div>
+      <h2 class="empty-state-title">No Saved Recipes Yet</h2>
+      <p class="empty-state-text">Explore new meals with your pantry ingredients or generate custom recipes to build your personal cookbook.</p>
+      <a href="/dashboard" class="btn btn-primary">
+        Go to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Saved Recipes Grid -->
+  <div id="saved-recipes-grid" class="saved-recipes-grid">
+    <!-- Rendered via JavaScript -->
+  </div>
+</div>
+
+<!-- Modal: View Saved Recipe Full Details -->
+<div id="modal-view-saved" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card modal-card-lg">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+      </div>
+      <div>
+        <h2 id="saved-modal-title" class="modal-title">Dish Name</h2>
+        <p class="modal-subtitle"><span id="saved-modal-servings">2</span> Servings &bull; Saved on <span id="saved-modal-date">Date</span></p>
+      </div>
+      <button type="button" class="modal-close" id="saved-modal-close" aria-label="Close modal">&times;</button>
+    </div>
+
+    <div class="modal-body modal-scrollable">
+      <div class="recipe-body-grid">
+        <!-- Ingredients List -->
+        <div class="recipe-ingredients-col">
+          <h3 class="recipe-col-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18a1 1 0 0 1-2 0v-1.07A8 8 0 0 1 4.07 11H3a1 1 0 0 1 0-2h1.07A8 8 0 0 1 11 2.07V3a1 1 0 0 1 2 0v-.93A8 8 0 0 1 19.93 9H21a1 1 0 0 1 0 2h-1.07A8 8 0 0 1 13 16.93z"></path>
+            </svg>
+            Ingredients
+          </h3>
+          <ul id="saved-modal-ingredients" class="recipe-ingredients-checklist">
+            <!-- Rendered list -->
+          </ul>
+        </div>
+
+        <!-- Instructions List -->
+        <div class="recipe-instructions-col">
+          <h3 class="recipe-col-heading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            Instructions
+          </h3>
+          <ol id="saved-modal-instructions" class="recipe-instructions-list">
+            <!-- Rendered steps -->
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.35rem;">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        Print Recipe
+      </button>
+      <button type="button" class="btn btn-primary" id="saved-modal-dismiss">Done</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let savedRecipes = [];
+
+  const grid = document.getElementById('saved-recipes-grid');
+  const emptyState = document.getElementById('empty-saved-state');
+  const unauthState = document.getElementById('unauth-saved-state');
+  const searchInput = document.getElementById('search-recipes-input');
+
+  // Modal elements
+  const modal = document.getElementById('modal-view-saved');
+  const modalTitle = document.getElementById('saved-modal-title');
+  const modalServings = document.getElementById('saved-modal-servings');
+  const modalDate = document.getElementById('saved-modal-date');
+  const modalIngredients = document.getElementById('saved-modal-ingredients');
+  const modalInstructions = document.getElementById('saved-modal-instructions');
+  const modalClose = document.getElementById('saved-modal-close');
+  const modalDismiss = document.getElementById('saved-modal-dismiss');
+
+  async function loadSavedRecipes() {
+    showLoader('Loading your saved recipes...');
+    try {
+      const response = await fetch('/api/recipes');
+      const data = await response.json();
+      hideLoader();
+
+      if (response.status === 401) {
+        unauthState.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+      }
+
+      if (data.success && Array.isArray(data.data.recipes)) {
+        savedRecipes = data.data.recipes;
+        renderRecipes(savedRecipes);
+      } else {
+        showEmptyState();
+      }
+    } catch (err) {
+      hideLoader();
+      showToast('Failed to load saved recipes.', 'error');
+      showEmptyState();
+    }
+  }
+
+  function renderRecipes(recipes) {
+    grid.innerHTML = '';
+
+    if (!recipes || recipes.length === 0) {
+      showEmptyState();
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    unauthState.classList.add('hidden');
+
+    recipes.forEach((item) => {
+      let ingredients = [];
+      let instructions = [];
+
+      try {
+        ingredients = typeof item.ingredients === 'string' ? JSON.parse(item.ingredients) : item.ingredients;
+        instructions = typeof item.instructions === 'string' ? JSON.parse(item.instructions) : item.instructions;
+      } catch (e) {
+        ingredients = [];
+        instructions = [];
+      }
+
+      const card = document.createElement('div');
+      card.className = 'saved-recipe-card';
+      card.id = `saved-recipe-${item.id}`;
+
+      const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric'
+      }) : 'Recently';
+
+      // Show top 4 ingredients
+      const ingPills = Array.isArray(ingredients) 
+        ? ingredients.slice(0, 4).map(ing => {
+            const name = typeof ing === 'object' ? ing.name : ing;
+            return `<span class="tag-pill">${escapeHtml(name)}</span>`;
+          }).join('') 
+        : '';
+
+      const moreCount = Array.isArray(ingredients) && ingredients.length > 4 ? `+${ingredients.length - 4} more` : '';
+
+      card.innerHTML = `
+        <div class="saved-card-header">
+          <div class="saved-card-meta">
+            <span class="badge badge-accent">${item.servings || 2} Servings</span>
+            <span class="saved-card-date">${createdDate}</span>
+          </div>
+          <h3 class="saved-card-title">${escapeHtml(item.dish_name)}</h3>
+        </div>
+
+        <div class="saved-card-body">
+          <div class="saved-card-tags">
+            ${ingPills}
+            ${moreCount ? `<span class="tag-pill tag-pill-more">${moreCount}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="saved-card-actions">
+          <button type="button" class="btn btn-outline btn-sm btn-view-recipe" data-id="${item.id}">
+            View Recipe
+          </button>
+          <button type="button" class="btn btn-danger-outline btn-sm btn-delete-recipe" data-id="${item.id}">
+            Delete
+          </button>
+        </div>
+      `;
+
+      // Event listeners
+      card.querySelector('.btn-view-recipe').addEventListener('click', () => {
+        openRecipeModal(item, ingredients, instructions, createdDate);
+      });
+
+      card.querySelector('.btn-delete-recipe').addEventListener('click', () => {
+        deleteRecipe(item.id, item.dish_name);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function openRecipeModal(recipe, ingredients, instructions, date) {
+    modalTitle.textContent = recipe.dish_name;
+    modalServings.textContent = recipe.servings || 2;
+    modalDate.textContent = date;
+
+    modalIngredients.innerHTML = '';
+    if (Array.isArray(ingredients)) {
+      ingredients.forEach(ing => {
+        const li = document.createElement('li');
+        li.className = 'recipe-ing-check-item';
+        const name = typeof ing === 'object' ? ing.name : ing;
+        const qty = typeof ing === 'object' && ing.quantity ? ing.quantity : '';
+        li.innerHTML = `<strong>${escapeHtml(qty)}</strong> <span style="margin-left: 0.4rem;">${escapeHtml(name)}</span>`;
+        modalIngredients.appendChild(li);
+      });
+    }
+
+    modalInstructions.innerHTML = '';
+    if (Array.isArray(instructions)) {
+      instructions.forEach(step => {
+        const li = document.createElement('li');
+        li.className = 'instruction-step';
+        li.textContent = step;
+        modalInstructions.appendChild(li);
+      });
+    }
+
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModal() {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalDismiss) modalDismiss.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  async function deleteRecipe(id, dishName) {
+    if (!confirm(`Are you sure you want to delete "${dishName}" from your saved recipes?`)) {
+      return;
+    }
+
+    showLoader('Deleting recipe...');
+    try {
+      const response = await fetch(`/api/recipes/${id}`, { method: 'DELETE' });
+      const data = await response.json();
+      hideLoader();
+
+      if (response.ok && data.success) {
+        showToast(`"${dishName}" deleted successfully.`, 'success');
+        savedRecipes = savedRecipes.filter(r => r.id !== id);
+        renderRecipes(savedRecipes);
+      } else {
+        showToast(data.error || 'Failed to delete recipe.', 'error');
+      }
+    } catch (err) {
+      hideLoader();
+      showToast('Error connecting to the server.', 'error');
+    }
+  }
+
+  function showEmptyState() {
+    emptyState.classList.remove('hidden');
+    grid.innerHTML = '';
+  }
+
+  // Filter recipes by name
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      if (!term) {
+        renderRecipes(savedRecipes);
+        return;
+      }
+      const filtered = savedRecipes.filter(r => r.dish_name.toLowerCase().includes(term));
+      renderRecipes(filtered);
+    });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
+  // Load recipes on page load
+  document.addEventListener('DOMContentLoaded', loadSavedRecipes);
+</script>
+{% endblock %}
