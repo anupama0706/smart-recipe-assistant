@@ -32,7 +32,6 @@ __all__ = [
     "chat_with_recipe",
 ]
 
-
 DEFAULT_MODEL = "gemini-2.5-flash"
 
 
@@ -42,8 +41,7 @@ def sanitize_model(model: str) -> str:
     cleaned = str(model).strip().strip('"').strip("'")
     if cleaned.startswith("models/"):
         cleaned = cleaned.replace("models/", "", 1)
-    # Automatically rewrite retired 2.0 endpoints
-    if "gemini-2.0" in cleaned:
+    if any(old in cleaned for old in ["gemini-2.0", "gemini-1.5"]):
         return DEFAULT_MODEL
     return cleaned
 
@@ -51,8 +49,8 @@ def sanitize_model(model: str) -> str:
 FALLBACK_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
+    "gemini-3.6-flash",
     "gemini-flash-latest",
-    "gemini-1.5-flash",
 ]
 MODEL_NAME = sanitize_model(os.getenv("GEMINI_MODEL", DEFAULT_MODEL))
 
@@ -173,8 +171,7 @@ RECIPE_SCHEMA = _json_schema(
 
 CHAT_SCHEMA = _json_schema({"answer": {"type": "string"}}, ["answer"])
 
-
-def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
+def _call_gemini_with_retries(client, contents, config, retries=2, delay=1.0):
     raw_env_model = os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
     configured_model = sanitize_model(raw_env_model)
     
@@ -198,17 +195,11 @@ def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
             except errors.APIError as err:
                 last_error = err
                 err_str = str(err).lower()
-                is_transient = (
-                    "503" in err_str
-                    or "unavailable" in err_str
-                    or "429" in err_str
-                    or "exhausted" in err_str
-                    or "rate limit" in err_str
-                )
+                is_transient = any(code in err_str for code in ["503", "unavailable", "429", "exhausted", "rate limit"])
                 if is_transient and attempt < retries - 1:
                     time.sleep(delay * (attempt + 1))
                     continue
-                # If it's a 404 or permanent failure, fall through to try the next model
+                # If 404 or unsupported on this specific model, break inner loop to try next model
                 break
             except Exception as err:
                 last_error = err
@@ -217,7 +208,6 @@ def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
     if last_error:
         raise last_error
     raise AIServiceError("All candidate Gemini models failed to generate content.")
-
 
 def _generate_json(prompt, schema=None, system_instruction=None):
     client = get_client()
