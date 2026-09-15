@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 
 from config import Config
 from routes.auth_routes import auth_bp
@@ -17,6 +17,8 @@ def create_app():
 
     @app.get("/")
     def index():
+        return redirect("/login")
+    def index():
         return jsonify({"success": True, "data": {"message": "Smart Recipe Assistant API is running."}})
 
     return app
@@ -27,3 +29,4 @@ app = create_app()
 
 if __name__ == "__main__":
     app.run(debug=True)
+
