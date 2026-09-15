@@ -34,8 +34,6 @@ __all__ = [
 
 
 DEFAULT_MODEL = "gemini-2.5-flash"
-if DEFAULT_MODEL.startswith("models/"):
-    DEFAULT_MODEL = DEFAULT_MODEL.replace("models/", "", 1)
 
 
 def sanitize_model(model: str) -> str:
@@ -44,6 +42,9 @@ def sanitize_model(model: str) -> str:
     cleaned = str(model).strip().strip('"').strip("'")
     if cleaned.startswith("models/"):
         cleaned = cleaned.replace("models/", "", 1)
+    # Automatically rewrite retired 2.0 endpoints
+    if "gemini-2.0" in cleaned:
+        return DEFAULT_MODEL
     return cleaned
 
 
@@ -51,9 +52,7 @@ FALLBACK_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
     "gemini-flash-latest",
-    "gemini-3.5-flash",
     "gemini-1.5-flash",
-    "gemini-2.0-flash",
 ]
 MODEL_NAME = sanitize_model(os.getenv("GEMINI_MODEL", DEFAULT_MODEL))
 
@@ -176,7 +175,9 @@ CHAT_SCHEMA = _json_schema({"answer": {"type": "string"}}, ["answer"])
 
 
 def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
-    configured_model = sanitize_model(os.getenv("GEMINI_MODEL", DEFAULT_MODEL))
+    raw_env_model = os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
+    configured_model = sanitize_model(raw_env_model)
+    
     models_to_try = [configured_model]
     for fb in FALLBACK_MODELS:
         clean_fb = sanitize_model(fb)
@@ -207,6 +208,7 @@ def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
                 if is_transient and attempt < retries - 1:
                     time.sleep(delay * (attempt + 1))
                     continue
+                # If it's a 404 or permanent failure, fall through to try the next model
                 break
             except Exception as err:
                 last_error = err
@@ -220,8 +222,6 @@ def _call_gemini_with_retries(client, contents, config, retries=3, delay=1.5):
 def _generate_json(prompt, schema=None, system_instruction=None):
     client = get_client()
 
-    # Avoid passing response_schema directly inside GenerateContentConfig
-    # to prevent AFC warnings and upstream 503 drops
     config_params = {
         "response_mime_type": "application/json",
         "temperature": 0.4,
@@ -231,7 +231,6 @@ def _generate_json(prompt, schema=None, system_instruction=None):
 
     config = types.GenerateContentConfig(**config_params)
 
-    # Append schema constraint cleanly into the prompt text
     formatted_prompt = prompt
     if schema:
         formatted_prompt += f"\n\nReturn strictly valid JSON conforming to this schema:\n{json.dumps(schema)}"
@@ -269,12 +268,10 @@ def _generate_json(prompt, schema=None, system_instruction=None):
                 raise ValueError(f"Schema validation error: Missing required fields {missing}")
     except (errors.APIError, ValueError, TypeError, json.JSONDecodeError, RuntimeError) as exc:
         print(f"\n[AI SERVICE ERROR]: {type(exc).__name__}: {exc}\n")
-        import traceback
         traceback.print_exc()
         raise AIServiceError(f"Gemini could not generate a valid response: {exc}") from exc
     except Exception as exc:
         print(f"\n[AI SERVICE ERROR]: {type(exc).__name__}: {exc}\n")
-        import traceback
         traceback.print_exc()
         raise AIServiceError(f"Gemini could not generate a valid response: {exc}") from exc
 
@@ -397,7 +394,6 @@ def generate_recipe(dish_name, servings, final_ingredients):
         )
         return _generate_json(prompt, RECIPE_SCHEMA, system_instruction=system_instruction)
     except Exception:
-        import traceback
         traceback.print_exc()
         raise
 
